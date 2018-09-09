@@ -6,6 +6,8 @@ import sys
 import os
 import subprocess
 
+version = "1.0.0"
+
 def yes_or_no(question):
     while "the answer is invalid":
         reply = str(raw_input(question+' (y/n): ')).lower().strip()
@@ -17,7 +19,9 @@ def yes_or_no(question):
 
 if (len(sys.argv) != 3) and (len(sys.argv) != 4) and (len(sys.argv) != 5):
     print("Wrong number of argument.")
-    print("usage: sys.argv[0] audioFile cueFile [destination: currentFolder] [cover: None]")
+    print("Version : " + version)
+    print("usage: " + sys.argv[0] + " audioFile cueFile [destination: currentFolder] [cover: None]")
+    exit()
 
 inFile = sys.argv[1]
 cueFile = sys.argv[2]
