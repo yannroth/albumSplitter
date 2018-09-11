@@ -5,8 +5,9 @@ from deflacue import deflacue as cue
 import sys
 import os
 import subprocess
+import argparse
 
-version = "1.0.0"
+version = "1.1.0"
 
 def yes_or_no(question):
     while "the answer is invalid":
@@ -16,31 +17,30 @@ def yes_or_no(question):
         if reply[0] == 'n':
             return False
 
+def existing_file(string):
+    if not os.path.isfile(string):
+        raise argparse.ArgumentTypeError(repr(string) + " not found.")
+    return string
 
-if (len(sys.argv) != 3) and (len(sys.argv) != 4) and (len(sys.argv) != 5):
-    print("Wrong number of argument.")
-    print("Version : " + version)
-    print("usage: " + sys.argv[0] + " audioFile cueFile [destination: currentFolder] [cover: None]")
-    exit()
+def create_dir(string):
+    if os.path.exists(string) and not os.path.isdir(string):
+        raise argparse.ArgumentTypeError(repr(string) + " exist but is not a directory.")
+    if not os.path.exists(string):
+        os.makedirs(string)
+    return string
 
-inFile = sys.argv[1]
-cueFile = sys.argv[2]
-
-outFolder = "."
-if len(sys.argv) >= 4:
-    outFolder = sys.argv[3]
-
-cover = None
-if len(sys.argv) >= 5:
-    cover = sys.argv[4]
-
-if not os.path.exists(outFolder):
-    os.makedirs(outFolder)
+parser = argparse.ArgumentParser(description='Splits albums files described with a cue sheet')
+parser.add_argument('album', type=existing_file, help='Input audio file of the album to split')
+parser.add_argument('cue', type=existing_file, help='Input cue sheet defining tracks of album')
+parser.add_argument('-d', '--dest', type=create_dir, default='.', help='Destination directory where track files will be written')
+parser.add_argument('-c', '--cover', type=str, help='Cover image file')
+parser.add_argument('-f', '--format', type=str, default='flac', help='Output format, can be whatever ffmpeg is compatible with: http://www.ffmpeg.org/general.html#Audio-Codecs')
+args = parser.parse_args()
 
 # Load
 print "Loading metadata..."
-metadata = cue.CueParser(cueFile, encoding="iso-8859-1").get_data_tracks()
-extension = os.path.splitext(inFile)[1][1:]
+metadata = cue.CueParser(args.cue, encoding="iso-8859-1").get_data_tracks()
+extension = os.path.splitext(args.album)[1][1:]
 
 gArtist = metadata[0]['PERFORMER']
 if not gArtist or not yes_or_no("Artist is: '" + gArtist + "', is it ok?"):
@@ -61,7 +61,7 @@ gAlbum = gAlbum.encode('utf-8')
 print gArtist + " - " + gYear + " - " + gAlbum
 
 print "Loading media file..."
-toSplit = aud.from_file(inFile, extension)
+toSplit = aud.from_file(args.album, extension)
 
 print "Exporting songs..."
 for song in metadata:
@@ -81,17 +81,20 @@ for song in metadata:
     #album = song['ALBUM']
     track = '%02d' % song['TRACK_NUM']
     title = song['TITLE'].encode('utf-8')
-    fileName = os.path.join(outFolder, track + " - " + title + "." + extension.lower())
+    fileName = os.path.join(args.dest, track + " - " + title + "." + args.format.lower())
     tmp = toSplit[startTime:endTime]
     sys.stdout.write(fileName)
     sys.stdout.flush()
-    tmp.export(fileName, 
-                format=extension, 
+    try:
+        tmp.export(fileName,
+                format=args.format,
                 tags={'artist': artist, 'album_artist': artist, 'year': year, 'album': album, 'track': track, 'title': title})
-    error = 0
-    if cover != None:
-        error = subprocess.call(["metaflac", "--import-picture-from=" + cover, fileName])
-    if error != 0:
-        sys.stdout.write(" : Image upload failed\n")
-    else:
+        if args.cover != None:
+            if subprocess.call(["metaflac", "--import-picture-from=" + args.cover, fileName]):
+                raise BlockingIOError("Couldn't add cover")
         sys.stdout.write(" : DONE\n")
+    except:
+        sys.stdout.write(" : FAILED\n")
+        sys.exit(1)
+
+sys.exit(0)
