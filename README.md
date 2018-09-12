@@ -21,9 +21,32 @@ And flac:
 ## Quickstart
 To use albumSplitter.py, simply call it following this example:
 
-    albumSplitter.py input.flac input.cue outDir albumCover.jpg
+    albumSplitter.py input.flac input.cue -d outDir -c albumCover.jpg -f flac -s '%track% - %title%'
 
-The script will automatically read the info stored in the .cue file, split the album with one file for each song, apply tags (only 'artist', 'album', 'year', 'title' and 'track' are applied) and add cover to song files.
+The script will automatically read the info stored in the .cue file, split the album with one file for each song, apply tags (only 'artist', 'album', 'year', 'title', 'track' and 'genre' are applied) and add cover to song files.
+
+Here is the full help message with parameters description:
+```
+positional arguments:
+  album                 Input audio file of the album to split
+  cue                   Input cue sheet defining tracks of album
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -d DEST, --dest DEST  Destination directory where track files will be
+                        written. Default: current directory
+  -c COVER, --cover COVER
+                        Cover image file
+  -f FORMAT, --format FORMAT
+                        Output audio format, can be whatever ffmpeg is
+                        compatible with: http://www.ffmpeg.org/general.html
+                        #Audio-Codecs. Default: flac
+  -s STRING, --string STRING
+                        Formatting string for the output. Supported items are:
+                        %artist%, %year%, %album%, %track%, %title% and
+                        %genre%. Default: %artist%/%year% - %album%/%track% -
+                        %title%
+```
 # Donate
 This project is given for free ! If you want me to get some draft beers on you, help yourself and donate some coins:\
 btc: 1GYpPSEykq7NJ2UL3LhPCCV98CRW6DpKZD\
