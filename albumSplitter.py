@@ -36,11 +36,18 @@ parser.add_argument('-d', '--dest', type=create_dir, default='.', help='Destinat
 parser.add_argument('-c', '--cover', type=str, help='Cover image file')
 parser.add_argument('-f', '--format', type=str, default='flac', help='Output audio format, can be whatever ffmpeg is compatible with: http://www.ffmpeg.org/general.html#Audio-Codecs. Default: %(default)s')
 parser.add_argument('-s', '--string', type=str, default='%artist%/%year% - %album%/%track% - %title%', help='Formatting string for the output. Supported items are: %%artist%%, %%year%%, %%album%%, %%track%%, %%title%% and %%genre%%. Default: %(default)s')
+parser.add_argument('-v', '--version', action='store_true', default=False, help='Print version and quit')
+parser.add_argument('-V', '--verbose', action='store_true', default=False, help ='Make it more verbose')
+parser.add_argument('-bd', '--bitdepth', type=str, default='s16', help='Configure bitdepth of output files, accept ffmpeg bitdepth argument, use "ffmpeg -sample-fmts" to see available bit depths. Default: %(default)s')
+parser.add_argument('-sr', '--samplerate', type=str, default='44100', help='Configure sample rate of outpute files. Default: %(default)s')
 args = parser.parse_args()
 
+if args.version:
+    print (version)
+    sys.exit(0)
 # Load
-print "Loading metadata..."
-metadata = cue.CueParser(args.cue, encoding="iso-8859-1").get_data_tracks()
+print("Loading metadata...")
+metadata = cue.CueParser(args.cue, encoding="utf-8").get_data_tracks()
 extension = os.path.splitext(args.album)[1][1:]
 
 gArtist = metadata[0]['PERFORMER']
@@ -71,9 +78,9 @@ toSplit = aud.from_file(args.album, extension)
 
 print "Exporting songs..."
 for song in metadata:
-    startTime = song['POS_START_SAMPLES'] // (toSplit.frame_rate / 1000.)
+    startTime = song['POS_START_SAMPLES'] // (44100 / 1000.) # Don't use actual sample rate of file because deflacue can't know it and uses 44100 to output samples
     try:
-        endTime = song['POS_END_SAMPLES'] // (toSplit.frame_rate / 1000.)
+        endTime = song['POS_END_SAMPLES'] // (44100 / 1000.)
     except TypeError:
         endTime = None
 
@@ -100,13 +107,17 @@ for song in metadata:
 
     tmp = toSplit[startTime:endTime]
     sys.stdout.write(filename)
+    if args.verbose:
+        sys.stdout.write(' ' + str(startTime) + ' - ' + str(endTime))
+
     sys.stdout.flush()
     try:
         tmp.export(filename,
                 format=args.format,
+                parameters=['-sample_fmt', args.bitdepth, '-ar', args.samplerate],
                 tags={'artist': artist, 'album_artist': artist, 'year': year, 'album': album, 'track': track, 'title': title, 'genre': genre})
         if args.cover != None:
-            if subprocess.call(["metaflac", "--import-picture-from=" + args.cover, fileName]):
+            if subprocess.call(["metaflac", "--import-picture-from='" + args.cover + "'", fileName]):
                 raise BlockingIOError("Couldn't add cover")
         sys.stdout.write(" : DONE\n")
     except:
