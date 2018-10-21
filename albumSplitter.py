@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 from pydub import AudioSegment as aud
 from deflacue import deflacue as cue
@@ -11,7 +11,7 @@ version = "1.2.0"
 
 def yes_or_no(question):
     while "the answer is invalid":
-        reply = str(raw_input(question+' (y/n): ')).lower().strip()
+        reply = str(input(question+' (y/n): ')).lower().strip()
         if reply[0] == 'y':
             return True
         if reply[0] == 'n':
@@ -27,6 +27,15 @@ def create_dir(string):
         raise argparse.ArgumentTypeError(repr(string) + " exist but is not a directory.")
     if not os.path.exists(string):
         os.makedirs(string)
+    return string
+
+def slugify(string):
+    ilegals = [':', '"', '/', '\\', '|']
+    ilegalsInv = ['<', '>', '?', '*']
+    for i in ilegals:
+        string = string.replace(i, '-')
+    for i in ilegalsInv:
+        string = string.replace(i, '')
     return string
 
 parser = argparse.ArgumentParser(description='Splits albums files described with a cue sheet')
@@ -52,31 +61,36 @@ extension = os.path.splitext(args.album)[1][1:]
 
 gArtist = metadata[0]['PERFORMER']
 if not gArtist or not yes_or_no("Artist is: '" + gArtist + "', is it ok?"):
-    gArtist = raw_input("Enter artist manually: ")
+    gArtist = input("Enter artist manually: ")
 
 gYear = metadata[0]['DATE']
 if not gYear or not yes_or_no("Year is: '" + gYear + "', is it ok?"):
-    gYear = raw_input("Enter year manually: ")
+    gYear = input("Enter year manually: ")
 
 gAlbum = metadata[0]['ALBUM']
 if not gAlbum or not yes_or_no("Album is: '" + gAlbum + "', is it ok?"):
-    gAlbum = raw_input("Enter album manually: ")
+    gAlbum = input("Enter album manually: ")
 
 gGenre = metadata[0]['GENRE']
 if not gGenre or not yes_or_no("Genre is: '" + gGenre + "', is it ok?"):
-    gGenre = raw_input("Enter genre manually: ")
+    gGenre = input("Enter genre manually: ")
 
 gArtist = gArtist.encode('utf-8')
 gYear = gYear.encode('utf-8')
 gAlbum = gAlbum.encode('utf-8')
 gGenre = gGenre.encode('utf-8')
 
-print gArtist + " - " + gGenre +" - " + gYear + " - " + gAlbum
+gArtist = gArtist.decode('utf-8')
+gYear = gYear.decode('utf-8')
+gAlbum = gAlbum.decode('utf-8')
+gGenre = gGenre.decode('utf-8')
 
-print "Loading media file..."
+print(gArtist + " - " + gGenre +" - " + gYear + " - " + gAlbum)
+
+print("Loading media file...")
 toSplit = aud.from_file(args.album, extension)
 
-print "Exporting songs..."
+print("Exporting songs...")
 for song in metadata:
     startTime = song['POS_START_SAMPLES'] // (44100 / 1000.) # Don't use actual sample rate of file because deflacue can't know it and uses 44100 to output samples
     try:
@@ -90,15 +104,16 @@ for song in metadata:
     genre = gGenre
     track = '%02d' % song['TRACK_NUM']
     title = song['TITLE'].encode('utf-8')
+    title = title.decode('utf-8')
 
     #Parse format string to generate filename:
     filename = args.string
-    filename = filename.replace('%artist%', artist)
-    filename = filename.replace('%year%', year)
-    filename = filename.replace('%album%', album)
-    filename = filename.replace('%track%', track)
-    filename = filename.replace('%title%', title)
-    filename = filename.replace('%genre%', genre)
+    filename = filename.replace('%artist%', slugify(artist))
+    filename = filename.replace('%year%', slugify(year))
+    filename = filename.replace('%album%', slugify(album))
+    filename = filename.replace('%track%', slugify(track))
+    filename = filename.replace('%title%', slugify(title))
+    filename = filename.replace('%genre%', slugify(genre))
     filename = os.path.join(args.dest, filename + '.' + args.format.lower())
 
     fulldir = os.path.dirname(filename)
