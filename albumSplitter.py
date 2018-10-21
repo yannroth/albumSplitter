@@ -7,7 +7,7 @@ import os
 import subprocess
 import argparse
 
-version = "1.2.0"
+version = "1.3.0"
 
 def yes_or_no(question):
     while "the answer is invalid":
