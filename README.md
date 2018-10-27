@@ -4,11 +4,11 @@ Python script to split albums stored in singles files with corresponding cueFile
 ## Dependencies
 To use albumSplitter.py, you need pydub:
 
-    pip install pydub
+    pip3 install pydub
 
 and deflacue:
 
-    pip install deflacue
+    pip3 install deflacue
 
 You'll also need ffmpeg:
 
