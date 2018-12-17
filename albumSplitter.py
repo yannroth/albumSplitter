@@ -7,7 +7,7 @@ import os
 import subprocess
 import argparse
 
-version = "1.3.0"
+version = "1.3.1"
 
 def yes_or_no(question):
     while "the answer is invalid":
@@ -56,7 +56,16 @@ if args.version:
     sys.exit(0)
 # Load
 print("Loading metadata...")
-metadata = cue.CueParser(args.cue, encoding="utf-8").get_data_tracks()
+try:
+    metadata = cue.CueParser(args.cue, encoding="utf-8").get_data_tracks()
+except:
+    print("not utf-8, going to try latin1")
+    try:
+        metadata = cue.CueParser(args.cue, encoding="latin1").get_data_tracks()
+    except:
+        print("not latin1 either, you're on your own now")
+        sys.exit(1)
+
 extension = os.path.splitext(args.album)[1][1:]
 
 gArtist = metadata[0]['PERFORMER']
